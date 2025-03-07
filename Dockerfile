@@ -1,19 +1,13 @@
-FROM node:16
-
+FROM node:18-alpine AS build
 WORKDIR /app
-
-# Копіюємо package.json і встановлюємо залежності
-COPY package.json .
+COPY package*.json ./
 RUN npm install
-
-# Копіюємо весь код
 COPY . .
-
-# Будуємо продакшн-версію React
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
 RUN npm run build
 
-# Встановлюємо простий сервер для роздачі статичних файлів
-RUN npm install -g serve
-
-# Запускаємо додаток
-CMD ["serve", "-s", "build", "-l", "3000"]
+FROM nginx:stable-alpine
+COPY --from=build /app/build /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
